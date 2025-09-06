@@ -1,0 +1,187 @@
+{
+  "project": {
+    "id": "37ebe9e3-e952-469f-bf50-c4e65f3a6d60",
+    "name": "InterDIA-ML Research Tracker",
+    "owner": "user",
+    "created_at": "2025-09-05T12:01:27.004741+06:00",
+    "updated_at": "2025-09-05T12:01:27.004741+06:00",
+    "timezone": "Asia/Dhaka",
+    "description": "Tracking experiments and decisions for ML-driven Drug-Induced Autoimmunity (DIA) prediction using InterDIA and related datasets."
+  },
+  "datasets": {
+    "InterDIA": {
+      "status": "imported",
+      "files_expected": [
+        "InterDIA_train.csv",
+        "InterDIA_test.csv"
+      ],
+      "notes": "Awaiting user upload/confirmation of file paths.",
+      "train_shape": [
+        477,
+        198
+      ],
+      "test_shape": [
+        120,
+        198
+      ],
+      "n_features": 196,
+      "updated_at": "2025-09-06T11:44:16.953913+06:00"
+    },
+    "auxiliary_sources": {
+      "ChEMBL": {
+        "status": "planned"
+      },
+      "ToxCast": {
+        "status": "planned"
+      },
+      "FAERS": {
+        "status": "planned"
+      },
+      "VigiBase": {
+        "status": "planned"
+      },
+      "LINCS_L1000": {
+        "status": "planned"
+      }
+    }
+  },
+  "conventions": {
+    "split_strategy": "scaffold_split",
+    "metrics": [
+      "AUROC",
+      "AUPRC",
+      "Brier",
+      "ECE"
+    ],
+    "random_seed": 42,
+    "applicability_domain": [
+      "tanimoto_to_train",
+      "embedding_density"
+    ],
+    "uncertainty": [
+      "mc_dropout",
+      "conformal_prediction"
+    ],
+    "logging": "every run must update this file under 'experiments' and 'decisions'"
+  },
+  "decisions": [],
+  "risks": [
+    {
+      "id": "R1",
+      "desc": "Data leakage across splits (analogs across train/test).",
+      "mitigation": "Use Bemis-Murcko scaffold split."
+    },
+    {
+      "id": "R2",
+      "desc": "Small sample size \u2192 overfitting.",
+      "mitigation": "Nested CV, regularization, pretraining for GNNs."
+    },
+    {
+      "id": "R3",
+      "desc": "Weak-label noise from FAERS/VigiBase.",
+      "mitigation": "Sensitivity analyses; exclude autoimmune indications; PU-learning."
+    }
+  ],
+  "experiments": [
+    {
+      "exp_id": "EXP-0001",
+      "title": "Baseline reproduction: XGBoost on InterDIA descriptors + SHAP",
+      "status": "planned",
+      "created_at": "2025-09-05T12:01:27.004741+06:00",
+      "updated_at": "2025-09-05T12:01:27.004741+06:00",
+      "inputs": {
+        "dataset": "InterDIA",
+        "features": "rdkit_descriptors"
+      },
+      "split": {
+        "type": "scaffold_split",
+        "folds": 5
+      },
+      "model": {
+        "type": "xgboost",
+        "params": {
+          "n_estimators": 1000,
+          "max_depth": 6,
+          "learning_rate": 0.05
+        }
+      },
+      "metrics": {},
+      "artifacts": {},
+      "notes": "Reproduce baseline to anchor improvements."
+    },
+    {
+      "exp_id": "EXP-0002",
+      "title": "Mechanistic features + Boruta + SHAP",
+      "status": "queued",
+      "created_at": "2025-09-05T12:01:27.004741+06:00",
+      "updated_at": "2025-09-05T12:01:27.004741+06:00",
+      "depends_on": [
+        "EXP-0001"
+      ],
+      "inputs": {
+        "dataset": "InterDIA",
+        "features": [
+          "rdkit_descriptors",
+          "mechanistic_fragments",
+          "targets"
+        ]
+      },
+      "split": {
+        "type": "scaffold_split",
+        "folds": 5
+      },
+      "model": {
+        "type": "xgboost"
+      },
+      "metrics": {},
+      "notes": "Add metabolism/immune-target features; select with Boruta; interpret with SHAP."
+    },
+    {
+      "exp_id": "EXP-0003",
+      "title": "GNN vs. baseline (GIN/AttentiveFP pretrain \u2192 fine-tune)",
+      "status": "queued",
+      "created_at": "2025-09-05T12:01:27.004741+06:00",
+      "updated_at": "2025-09-05T12:01:27.004741+06:00",
+      "depends_on": [
+        "EXP-0001"
+      ],
+      "inputs": {
+        "dataset": "InterDIA",
+        "features": "molecular_graphs"
+      },
+      "split": {
+        "type": "scaffold_split",
+        "folds": 5
+      },
+      "model": {
+        "type": "gnn",
+        "backbones": [
+          "GIN",
+          "AttentiveFP",
+          "GraphConv"
+        ]
+      },
+      "metrics": {},
+      "notes": "Self-supervised pretraining on large unlabeled set; compare to EXP-0001."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "A1",
+      "desc": "Confirm/ingest InterDIA CSVs and compute RDKit descriptors.",
+      "status": "done",
+      "updated_at": "2025-09-06T11:44:16.953913+06:00"
+    },
+    {
+      "id": "A2",
+      "desc": "Implement scaffold splitter (Bemis-Murcko).",
+      "status": "pending"
+    },
+    {
+      "id": "A3",
+      "desc": "Train EXP-0001 and record metrics.",
+      "status": "blocked",
+      "blocked_on": "A1,A2"
+    }
+  ]
+}
